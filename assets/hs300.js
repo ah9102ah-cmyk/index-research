@@ -259,10 +259,12 @@
       `<!-- index-research-ledger-v1:${encodePayload(payload)} -->`,
     ].join("\n");
     const url = `${ISSUE_URL}?title=${encodeURIComponent(`登记460300加仓 ${tradeDate} ${amount.toFixed(2)}元`)}&body=${encodeURIComponent(humanBody)}`;
-    const opened = window.open(url, "_blank", "noopener,noreferrer");
-    showMessage(opened === null
-      ? "浏览器拦截了新窗口，请允许弹窗后重试。"
-      : "登记单已在新页面打开。核对后提交，约1–2分钟后刷新本页即可看到远程记录。", opened !== null);
+    const link = document.createElement("a");
+    link.href = url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.click();
+    showMessage("登记单已尝试在新页面打开。核对后提交，约1–2分钟后刷新本页即可看到远程记录；若没有打开，请允许本站弹出新窗口后重试。", true);
   });
 
   document.querySelector("#export-ledger").addEventListener("click", () => {

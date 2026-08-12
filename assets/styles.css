@@ -224,6 +224,10 @@ th { color: var(--muted); font-size: 11px; }
   .input-card, .result-card { min-height: auto; }
   .result-card { min-height: 520px; }
   .explain-grid { grid-template-columns: 1fr; }
+  /* 允许 grid 子项收缩: 单列 grid 的 auto 列会被不可断行内容(长URL/长数字)撑开 */
+  #dashboard, .dashboard-grid, .summary-grid, .result-card, #buy-form,
+  .ledger-history, .history-head, .table-wrap, .remote-status,
+  .compact-card, .result-metrics { min-width: 0; }
 }
 
 @media (max-width: 520px) {
@@ -240,4 +244,17 @@ th { color: var(--muted); font-size: 11px; }
   .fund-market, .history-head, .remote-status, .ledger-loading { flex-direction: column; align-items: flex-start; }
   .nav-quote { min-width: 0; text-align: left; }
   .big-number strong { font-size: 44px; }
+  /* 手机窄屏: 长URL/长数字允许断行; 兜底禁止整体横向滚动 */
+  body { overflow-x: hidden; }
+  .remote-status a { overflow-wrap: anywhere; word-break: break-all; }
+  .summary-grid > div { min-width: 0; }
+  .summary-grid strong, .summary-grid small, .result-metrics strong,
+  .big-number strong, .nav-quote strong { overflow-wrap: anywhere; }
+  .section-heading > p:last-child, .hero-copy, .explain-grid p,
+  .methodology > div { overflow-wrap: anywhere; }
+  .ledger-history { padding: 20px 16px; }
+  .history-head h3 { font-size: 23px; }
+  th, td { padding: 10px 8px; }
+  .rule-strip strong { font-size: 22px; }
+  .review-stamp { flex: 0 0 auto; width: 100%; padding: 16px; }
 }

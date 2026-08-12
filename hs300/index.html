@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="沪深300固定6个月建仓与60/40阈值再平衡研究。">
+  <title>沪深300全生命周期策略｜指数的研究</title>
+  <link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="../">指数的研究</a>
+    <nav aria-label="当前位置"><a href="../">全部指数</a><span>/</span><strong>沪深300</strong></nav>
+  </header>
+
+  <main class="strategy-shell">
+    <section class="hero strategy-hero">
+      <div>
+        <p class="eyebrow">CSI 300 · 000300</p>
+        <h1>沪深300全生命周期策略</h1>
+        <p class="hero-copy">先用固定节奏完成建仓，再用宽阈值长期管理。它不预测明天涨跌，解决的是“已有一部分仓位，接下来按什么规则管理”。</p>
+      </div>
+      <div class="review-stamp">
+        <span>研究状态</span>
+        <strong>复审通过</strong>
+        <small>历史研究已封版<br>尚未经过实盘验证</small>
+      </div>
+    </section>
+
+    <section class="rule-strip" aria-label="策略规则摘要">
+      <div><span>建仓</span><strong>6个月</strong><small>每月目标增加10个百分点</small></div>
+      <div><span>长期目标</span><strong>60 / 40</strong><small>沪深300 / 储备资产</small></div>
+      <div><span>稳定区间</span><strong>55%–65%</strong><small>区间内不调整</small></div>
+      <div><span>主动择时</span><strong>关闭</strong><small>估值和技术调速未通过</small></div>
+    </section>
+
+    <section class="calculator-section">
+      <div class="section-heading">
+        <p class="eyebrow">POSITION BRIDGE</p>
+        <h2>把已有仓位接入模型</h2>
+        <p>沪深300目标仓位默认10万元，对应完整60/40模型组合约16.67万元。输入当前沪深300市值和累计盈亏，就能还原持仓成本与剩余储备；如储备金额与推算值不同，可直接覆盖。</p>
+      </div>
+
+      <div class="calculator-grid">
+        <form id="position-form" class="input-card" novalidate>
+          <div class="field">
+            <label for="capital">沪深300计划目标仓位</label>
+            <div class="money-input"><span>¥</span><input id="capital" name="capital" type="number" min="1" step="100" value="100000" inputmode="decimal"></div>
+            <small>默认最终持有10万元沪深300；模型会据此推算完整60/40组合。</small>
+          </div>
+
+          <div class="field">
+            <label for="market-value">当前沪深300持仓市值</label>
+            <div class="money-input"><span>¥</span><input id="market-value" name="marketValue" type="number" min="0" step="100" placeholder="例如 32000" inputmode="decimal" required></div>
+          </div>
+
+          <div class="field">
+            <label for="profit-loss">当前持仓累计盈亏</label>
+            <div class="money-input"><span>¥</span><input id="profit-loss" name="profitLoss" type="number" step="100" placeholder="盈利填正数，亏损填负数" inputmode="decimal" required></div>
+            <small>仅用于还原成本和展示收益，不改变模型状态。</small>
+          </div>
+
+          <div class="field">
+            <label for="reserve">当前储备资产市值 <span class="optional">选填</span></label>
+            <div class="money-input"><span>¥</span><input id="reserve" name="reserve" type="number" min="0" step="100" placeholder="留空则按完整模型资金和持仓成本推算" inputmode="decimal"></div>
+            <small>可以是用于该策略的现金、货币基金或低风险储备资产。</small>
+          </div>
+
+          <div class="field">
+            <label for="phase">当前处于哪个阶段</label>
+            <select id="phase" name="phase">
+              <option value="1">接入策略第1个月（目标10%）</option>
+              <option value="2">建仓第2个月（目标20%）</option>
+              <option value="3">建仓第3个月（目标30%）</option>
+              <option value="4">建仓第4个月（目标40%）</option>
+              <option value="5">建仓第5个月（目标50%）</option>
+              <option value="6">建仓第6个月（校准至60%）</option>
+              <option value="steady">已完成建仓（60/40稳定期）</option>
+            </select>
+            <small>如果今天才开始采用这套规则，即使已经持仓，也选“第1个月”。超前的仓位先保持，不重复增加。</small>
+          </div>
+
+          <button class="primary-button" type="submit">计算模型状态</button>
+          <p id="form-error" class="form-error" role="alert" hidden></p>
+        </form>
+
+        <section id="result-card" class="result-card empty" aria-live="polite">
+          <div class="empty-state">
+            <div class="empty-icon">60<span>/40</span></div>
+            <h3>等待输入当前仓位</h3>
+            <p>你的数据只在当前浏览器页面中参与计算，不会上传或保存。</p>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="explain-grid">
+      <article>
+        <span class="step-no">01</span>
+        <h3>已有仓位不会推倒重来</h3>
+        <p>从接入当月开始看目标比例。若已有比例高于当月小目标但不超过65%，保持现状，等后续计划自然追上。</p>
+      </article>
+      <article>
+        <span class="step-no">02</span>
+        <h3>盈亏不决定是否调整</h3>
+        <p>成本和盈亏用于展示，不作为追涨杀跌信号。模型只根据当前沪深300在整个策略组合中的占比判断。</p>
+      </article>
+      <article>
+        <span class="step-no">03</span>
+        <h3>稳定期少操作</h3>
+        <p>建仓完成后，只在占比跌破55%或升破65%时测算恢复到60%的差额；在区间内继续保持。</p>
+      </article>
+    </section>
+
+    <details class="methodology">
+      <summary>研究依据与边界</summary>
+      <div>
+        <p>研究比较了立即、3个月、6个月、12个月以及估值/技术调速等候选。固定6个月方案在收益、建仓回撤和现金拖累之间更均衡；主动调速未显示稳健优势，因此没有进入最终规则。</p>
+        <ul>
+          <li>历史多起点研究不等于未来收益保证。</li>
+          <li>模型采用沪深300全收益口径评估财富，页面不提供实时行情。</li>
+          <li>测算差额是规则模型输出，不是订单，也未计入具体基金申赎、滑点、税费和个人约束。</li>
+          <li>页面不联网读取账户；输入离开或刷新后即清空。</li>
+        </ul>
+      </div>
+    </details>
+  </main>
+
+  <footer class="site-footer">研究规则版本 v1.1.2 · 数据截止 2026-08-07 · 非收益承诺</footer>
+  <script src="../assets/hs300.js" defer></script>
+</body>
+</html>

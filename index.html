@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="独立的指数策略研究与规则测算工具。">
+  <title>指数的研究</title>
+  <link rel="stylesheet" href="./assets/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="./">指数的研究</a>
+    <span class="header-note">独立研究项目</span>
+  </header>
+
+  <main class="home-shell">
+    <section class="hero home-hero">
+      <p class="eyebrow">INDEX RESEARCH</p>
+      <h1>把每个指数，当成一项独立研究。</h1>
+      <p class="hero-copy">这里记录研究结论、适用边界和可复核的模型规则。与现有投资参考页面完全独立，不读取账户，也不会自动下单。</p>
+    </section>
+
+    <section class="research-grid" aria-label="指数研究列表">
+      <a class="research-card" href="./hs300/">
+        <div class="card-topline">
+          <span class="index-code">000300</span>
+          <span class="status-badge accepted">研究复审通过</span>
+        </div>
+        <h2>沪深300</h2>
+        <p>固定6个月建仓，随后进入60/40阈值再平衡。可输入已有仓位，查看模型组合如何衔接。</p>
+        <div class="card-metrics">
+          <span><b>6个月</b> 建仓</span>
+          <span><b>60/40</b> 长期配置</span>
+          <span><b>55%–65%</b> 稳定区间</span>
+        </div>
+        <span class="card-link">打开研究与测算 <span aria-hidden="true">→</span></span>
+      </a>
+
+      <article class="research-card muted-card">
+        <div class="card-topline">
+          <span class="index-code">NEXT</span>
+          <span class="status-badge pending">待研究</span>
+        </div>
+        <h2>下一项指数</h2>
+        <p>后续指数会按同样标准独立研究，不直接复用沪深300参数。</p>
+      </article>
+    </section>
+  </main>
+
+  <footer class="site-footer">历史研究不代表未来表现 · 页面不保存账户数据</footer>
+</body>
+</html>

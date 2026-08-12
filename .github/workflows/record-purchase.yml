@@ -1,0 +1,65 @@
+name: Record 460300 purchase
+
+on:
+  workflow_dispatch:
+    inputs:
+      amount:
+        description: "加仓金额（元，必填，例如 5000）"
+        required: true
+        type: string
+      transaction_date:
+        description: "交易/申请日期（可空，格式 YYYY-MM-DD；空白按北京时间今天）"
+        required: false
+        type: string
+      confirmed_shares:
+        description: "基金确认份额（可空；空白暂按最新确认净值估算）"
+        required: false
+        type: string
+      note:
+        description: "备注（可空）"
+        required: false
+        type: string
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: index-research-data-write
+  cancel-in-progress: false
+
+jobs:
+  record:
+    if: github.actor == 'ah9102ah-cmyk' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.issue.title, '登记460300加仓'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate and append purchase
+        env:
+          PURCHASE_AMOUNT: ${{ inputs.amount }}
+          PURCHASE_DATE: ${{ inputs.transaction_date }}
+          CONFIRMED_SHARES: ${{ inputs.confirmed_shares }}
+          PURCHASE_NOTE: ${{ inputs.note }}
+        run: python scripts/record_purchase.py
+      - name: Commit ledger
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/ledger-460300.json
+          if git diff --cached --quiet; then
+            echo "Ledger unchanged"
+            exit 0
+          fi
+          git commit -m "登记460300加仓"
+          git push
+      - name: Close completed entry issue
+        if: github.event_name == 'issues'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+        run: |
+          gh issue comment "$ISSUE_URL" --body "远程账本已完成校验和写入，页面部署后会自动显示。"
+          gh issue close "$ISSUE_URL" --reason completed

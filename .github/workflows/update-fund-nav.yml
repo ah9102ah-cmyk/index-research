@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: fund-nav-update
+  group: index-research-data-write
   cancel-in-progress: false
 
 jobs:

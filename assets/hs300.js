@@ -1,22 +1,23 @@
 (() => {
   "use strict";
 
-  const STORAGE_KEY = "indexResearch.hs300.ledger.v1";
+  const CACHE_KEY = "indexResearch.hs300.remoteLedger.cache.v1";
   const FUND_CODE = "460300";
-  const FUND_NAME = "华泰柏瑞沪深300ETF联接A";
   const DATA_URL = "../data/fund-460300.json";
+  const LEDGER_URL = "../data/ledger-460300.json";
+  const ISSUE_URL = "https://github.com/ah9102ah-cmyk/index-research/issues/new";
   const money = new Intl.NumberFormat("zh-CN", { style: "currency", currency: "CNY", minimumFractionDigits: 2 });
   const sharesFmt = new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 4 });
 
-  const setupPanel = document.querySelector("#setup-panel");
-  const setupForm = document.querySelector("#setup-form");
+  const loading = document.querySelector("#ledger-loading");
   const dashboard = document.querySelector("#dashboard");
   const summary = document.querySelector("#account-summary");
   const signalCard = document.querySelector("#signal-card");
   const transactionList = document.querySelector("#transaction-list");
   const buyForm = document.querySelector("#buy-form");
   let quote = null;
-  let ledger = loadLedger();
+  let ledger = null;
+  let ledgerSource = "remote";
 
   const escapeHtml = (value) => String(value)
     .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
@@ -25,21 +26,57 @@
     const raw = document.querySelector(id).value.trim();
     return raw === "" ? null : Number(raw);
   };
-  const today = () => new Date().toISOString().slice(0, 10);
-  const showError = (id, message) => { const el = document.querySelector(id); el.textContent = message; el.hidden = false; };
-  const clearError = (id) => { const el = document.querySelector(id); el.textContent = ""; el.hidden = true; };
+  const today = () => {
+    const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts();
+    const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+    return `${values.year}-${values.month}-${values.day}`;
+  };
   const finitePositive = (n) => Number.isFinite(n) && n > 0;
+  const showMessage = (message, success = false) => {
+    const el = document.querySelector("#buy-error");
+    el.textContent = message;
+    el.classList.toggle("success", success);
+    el.hidden = false;
+  };
+  const clearMessage = () => {
+    const el = document.querySelector("#buy-error");
+    el.textContent = "";
+    el.classList.remove("success");
+    el.hidden = true;
+  };
 
-  function loadLedger() {
+  function validateLedger(candidate) {
+    return candidate?.version === 1 && candidate?.fundCode === FUND_CODE
+      && finitePositive(Number(candidate.totalPrincipal)) && Number(candidate.reserveCash) >= 0
+      && /^\d{4}-\d{2}-\d{2}$/.test(candidate.strategyStartDate)
+      && (["1", "2", "3", "4", "5", "6", "steady"].includes(String(candidate.startingStage)))
+      && Array.isArray(candidate.transactions) && candidate.transactions.length > 0
+      && candidate.transactions.every(tx => ["initial", "buy"].includes(tx.type)
+        && finitePositive(Number(tx.amount)) && finitePositive(Number(tx.shares))
+        && /^\d{4}-\d{2}-\d{2}$/.test(tx.date));
+  }
+
+  function loadCache() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : null;
+      const candidate = JSON.parse(localStorage.getItem(CACHE_KEY));
+      return validateLedger(candidate) ? candidate : null;
     } catch (_) { return null; }
   }
 
-  function saveLedger() {
-    ledger.updatedAt = new Date().toISOString();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(ledger));
+  async function loadRemoteLedger() {
+    try {
+      const response = await fetch(`${LEDGER_URL}?v=${Date.now()}`, { cache: "no-store" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const candidate = await response.json();
+      if (!validateLedger(candidate)) throw new Error("远程账本格式无效");
+      ledger = candidate;
+      ledgerSource = "remote";
+      localStorage.setItem(CACHE_KEY, JSON.stringify(candidate));
+    } catch (error) {
+      ledger = loadCache();
+      ledgerSource = ledger ? "cache" : "error";
+    }
+    renderDashboard();
   }
 
   async function loadQuote() {
@@ -50,11 +87,11 @@
       if (data.code !== FUND_CODE || !finitePositive(Number(data.nav))) throw new Error("基金净值数据无效");
       quote = { ...data, nav: Number(data.nav), dailyChangePct: Number(data.dailyChangePct) };
       renderQuote();
-      if (ledger) renderDashboard();
-    } catch (error) {
+      renderDashboard();
+    } catch (_) {
       document.querySelector("#latest-nav").textContent = "暂不可用";
       document.querySelector("#latest-nav-meta").textContent = "净值读取失败，请稍后刷新";
-      if (ledger) renderDashboard();
+      renderDashboard();
     }
   }
 
@@ -69,9 +106,10 @@
 
   function monthStage(startDate, startingStage) {
     if (startingStage === "steady") return "steady";
-    const start = new Date(`${startDate}T00:00:00`);
+    const start = new Date(`${startDate}T00:00:00+08:00`);
     const now = new Date();
-    const elapsed = Math.max(0, (now.getFullYear() - start.getFullYear()) * 12 + now.getMonth() - start.getMonth());
+    const elapsed = Math.max(0, (Number(new Intl.DateTimeFormat("en", { timeZone: "Asia/Shanghai", year: "numeric" }).format(now)) - start.getFullYear()) * 12
+      + Number(new Intl.DateTimeFormat("en", { timeZone: "Asia/Shanghai", month: "numeric" }).format(now)) - (start.getMonth() + 1));
     const stage = Number(startingStage) + elapsed;
     return stage > 6 ? "steady" : String(stage);
   }
@@ -88,7 +126,7 @@
     const buildCash = Math.max(0, Number(ledger.totalPrincipal) - reserveCash - fundCost);
     const totalValue = marketValue + reserveCash + buildCash;
     const currentWeight = totalValue > 0 ? marketValue / totalValue : 0;
-    const phase = monthStage(ledger.strategyStartDate, ledger.startingStage);
+    const phase = monthStage(ledger.strategyStartDate, String(ledger.startingStage));
     let action = "hold", targetWeight = currentWeight, title, reason;
 
     if (phase === "steady") {
@@ -126,20 +164,31 @@
     if (action === "add" && difference <= 0) {
       action = "hold";
       title = "没有可用建仓资金";
-      reason = "模型存在正向差额，但账本中的尚未投入建仓资金已用完；长期4万元储备不自动挪用。";
+      reason = "模型存在正向差额，但尚未投入建仓资金已用完；长期4万元储备不自动挪用。";
     }
     return { shares, fundCost, marketValue, profit, profitRate, reserveCash, buildCash, totalValue, currentWeight, phase, action, targetWeight, difference, title, reason };
   }
 
   function renderDashboard() {
-    if (!ledger) { setupPanel.hidden = false; dashboard.hidden = true; return; }
-    setupPanel.hidden = true; dashboard.hidden = false;
+    if (!ledger) {
+      loading.hidden = false;
+      dashboard.hidden = true;
+      if (ledgerSource === "error") document.querySelector("#ledger-loading-note").textContent = "远程账本暂时无法读取，且本机没有可用缓存。请稍后刷新。";
+      return;
+    }
+    loading.hidden = true;
+    dashboard.hidden = false;
+    const source = document.querySelector("#ledger-source-status");
+    source.textContent = ledgerSource === "remote"
+      ? `远程账本已同步 · 最后写入 ${ledger.updatedAt || "未知"}`
+      : "远程读取失败 · 正在显示本机上次同步缓存";
     if (!quote) {
-      summary.innerHTML = `<div><span>账本状态</span><strong>已保存</strong><small>等待净值后自动计算</small></div>`;
-      signalCard.innerHTML = `<div class="empty-state"><h3>正在等待最新确认净值</h3><p>账本已保存在当前浏览器。</p></div>`;
+      summary.innerHTML = `<div><span>账本状态</span><strong>已读取</strong><small>等待净值后自动计算</small></div>`;
+      signalCard.innerHTML = `<div class="empty-state"><h3>正在等待最新确认净值</h3><p>远程持仓已经读取，净值恢复后会自动计算。</p></div>`;
       renderHistory();
       return;
     }
+
     const m = compute();
     const profitClass = m.profit >= 0 ? "positive" : "negative";
     summary.innerHTML = `
@@ -163,8 +212,8 @@
       <p class="result-reason">${escapeHtml(m.reason)}</p>
       <p class="result-warning">差额是模型测算上限，不是自动订单。开放式基金按未知价申购，实际份额以基金公司确认结果为准。</p>`;
     document.querySelector("#recommend-note").textContent = m.difference > 0
-      ? `当前模型正向差额上限 ${money.format(m.difference)}；这里只记录你已经完成的加仓。`
-      : "当前模型没有正向差额；这里只记录已经在基金平台完成的加仓。";
+      ? `当前模型正向差额上限 ${money.format(m.difference)}；这里只登记你已经完成的加仓。`
+      : "当前模型没有正向差额；这里只登记已经在基金平台完成的加仓。";
     renderHistory();
   }
 
@@ -176,86 +225,57 @@
       <td>${tx.sharesEstimated ? "按净值估算" : "基金确认"}</td></tr>`).join("");
   }
 
-  setupForm.addEventListener("submit", (event) => {
-    event.preventDefault(); clearError("#setup-error");
-    if (!quote) return showError("#setup-error", "最新净值尚未读取成功，请稍后刷新再建立账本。");
-    const totalPrincipal = numberFrom("#total-principal");
-    const fundCost = numberFrom("#fund-cost");
-    const initialProfit = numberFrom("#initial-profit");
-    const reserveCash = numberFrom("#reserve-cash");
-    if (![totalPrincipal, fundCost, initialProfit, reserveCash].every(Number.isFinite)) return showError("#setup-error", "请完整填写本金、持仓本金、盈亏和现金。");
-    if (totalPrincipal <= 0 || fundCost < 0 || reserveCash < 0 || fundCost + reserveCash > totalPrincipal) return showError("#setup-error", "持仓本金与长期现金不能超过策略总本金。");
-    const marketValue = fundCost + initialProfit;
-    if (marketValue < 0) return showError("#setup-error", "当前市值不能小于0，请检查盈亏正负号。");
-    ledger = {
-      version: 1, fundCode: FUND_CODE, fundName: FUND_NAME, totalPrincipal, reserveCash,
-      strategyStartDate: today(), startingStage: document.querySelector("#starting-stage").value,
-      transactions: [{ id: crypto.randomUUID(), type: "initial", date: today(), amount: fundCost,
-        shares: marketValue / quote.nav, sharesEstimated: true, navUsed: quote.nav, navDate: quote.navDate }]
-    };
-    saveLedger(); renderDashboard();
-  });
+  function encodePayload(payload) {
+    const bytes = new TextEncoder().encode(JSON.stringify(payload));
+    let binary = "";
+    bytes.forEach(byte => { binary += String.fromCharCode(byte); });
+    return btoa(binary).replaceAll("+", "-").replaceAll("/", "_");
+  }
 
   buyForm.addEventListener("submit", (event) => {
-    event.preventDefault(); clearError("#buy-error");
-    if (!quote || !ledger) return showError("#buy-error", "净值或账本尚未就绪。");
+    event.preventDefault();
+    clearMessage();
+    if (!quote || !ledger) return showMessage("净值或远程账本尚未就绪。");
     const amount = numberFrom("#buy-amount");
     const enteredShares = numberFrom("#buy-shares");
-    const date = document.querySelector("#buy-date").value;
+    const tradeDate = document.querySelector("#buy-date").value;
+    const note = document.querySelector("#buy-note").value.trim();
     const m = compute();
-    if (!date || !finitePositive(amount)) return showError("#buy-error", "请填写日期和大于0的加仓本金。");
-    if (amount > m.buildCash + 0.01) return showError("#buy-error", `加仓本金超过尚未投入的建仓资金 ${money.format(m.buildCash)}。`);
-    if (enteredShares !== null && !finitePositive(enteredShares)) return showError("#buy-error", "确认份额必须大于0。");
-    ledger.transactions.push({ id: crypto.randomUUID(), type: "buy", date, amount,
-      shares: enteredShares ?? amount / quote.nav, sharesEstimated: enteredShares === null,
-      navUsed: enteredShares === null ? quote.nav : null, navDate: enteredShares === null ? quote.navDate : null });
-    saveLedger(); buyForm.reset(); document.querySelector("#buy-date").value = today(); renderDashboard();
-  });
+    if (!tradeDate || !finitePositive(amount)) return showMessage("请填写日期和大于0的加仓本金。");
+    if (tradeDate > today()) return showMessage("交易日期不能晚于北京时间今天。");
+    if (tradeDate < ledger.strategyStartDate) return showMessage("加仓日期不能早于策略账本起始日。");
+    if (amount > m.buildCash + 0.01) return showMessage(`加仓本金超过尚未投入的建仓资金 ${money.format(m.buildCash)}。`);
+    if (enteredShares !== null && !finitePositive(enteredShares)) return showMessage("确认份额必须大于0。");
 
-  document.querySelector("#edit-ledger").addEventListener("click", () => {
-    if (!ledger) return;
-    if ((ledger.transactions || []).length > 1 && !confirm("重新初始化会覆盖现有加仓记录。建议先导出备份。是否继续？")) return;
-    const initial = ledger.transactions.find(tx => tx.type === "initial");
-    document.querySelector("#total-principal").value = ledger.totalPrincipal;
-    document.querySelector("#reserve-cash").value = ledger.reserveCash;
-    document.querySelector("#fund-cost").value = initial?.amount ?? "";
-    document.querySelector("#initial-profit").value = initial && quote ? (initial.shares * quote.nav - initial.amount).toFixed(2) : "";
-    document.querySelector("#starting-stage").value = ledger.startingStage;
-    dashboard.hidden = true; setupPanel.hidden = false;
-  });
-
-  document.querySelector("#clear-ledger").addEventListener("click", () => {
-    if (!confirm("确定清空当前浏览器中的沪深300账本吗？此操作无法恢复。")) return;
-    localStorage.removeItem(STORAGE_KEY); ledger = null; location.reload();
+    const payload = { version: 1, fundCode: FUND_CODE, amount, date: tradeDate, shares: enteredShares, note };
+    const humanBody = [
+      "这是由‘指数的研究’页面生成的远程账本登记单。请核对后点击下方 Submit new issue；提交不会自动申购基金，只会更新公开账本。",
+      "",
+      `- 加仓金额：${amount.toFixed(2)} 元`,
+      `- 交易/申请日期：${tradeDate}`,
+      `- 确认份额：${enteredShares === null ? "留空，暂按最新确认净值估算" : enteredShares}`,
+      `- 备注：${note || "无"}`,
+      "",
+      `<!-- index-research-ledger-v1:${encodePayload(payload)} -->`,
+    ].join("\n");
+    const url = `${ISSUE_URL}?title=${encodeURIComponent(`登记460300加仓 ${tradeDate} ${amount.toFixed(2)}元`)}&body=${encodeURIComponent(humanBody)}`;
+    const opened = window.open(url, "_blank", "noopener,noreferrer");
+    showMessage(opened === null
+      ? "浏览器拦截了新窗口，请允许弹窗后重试。"
+      : "登记单已在新页面打开。核对后提交，约1–2分钟后刷新本页即可看到远程记录。", opened !== null);
   });
 
   document.querySelector("#export-ledger").addEventListener("click", () => {
     if (!ledger) return;
     const blob = new Blob([JSON.stringify(ledger, null, 2)], { type: "application/json" });
-    const link = document.createElement("a"); link.href = URL.createObjectURL(blob);
-    link.download = `hs300-ledger-${today()}.json`; link.click(); URL.revokeObjectURL(link.href);
-  });
-
-  document.querySelector("#import-ledger").addEventListener("click", () => document.querySelector("#import-file").click());
-  document.querySelector("#import-file").addEventListener("change", async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    try {
-      const candidate = JSON.parse(await file.text());
-      const valid = candidate?.version === 1 && candidate?.fundCode === FUND_CODE
-        && finitePositive(Number(candidate.totalPrincipal)) && Number(candidate.reserveCash) >= 0
-        && Array.isArray(candidate.transactions) && candidate.transactions.length > 0
-        && candidate.transactions.every(tx => finitePositive(Number(tx.amount)) && finitePositive(Number(tx.shares)) && tx.date);
-      if (!valid) throw new Error("备份格式或基金代码不正确");
-      ledger = candidate; saveLedger(); renderDashboard();
-    } catch (error) {
-      alert(`导入失败：${error.message}`);
-    } finally {
-      event.target.value = "";
-    }
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `hs300-ledger-${today()}.json`;
+    link.click();
+    URL.revokeObjectURL(link.href);
   });
 
   document.querySelector("#buy-date").value = today();
-  renderDashboard();
+  loadRemoteLedger();
   loadQuote();
 })();

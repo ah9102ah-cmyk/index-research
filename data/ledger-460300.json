@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "fundCode": "460300",
+  "fundName": "华泰柏瑞沪深300ETF联接A",
+  "currency": "CNY",
+  "totalPrincipal": 100000.0,
+  "reserveCash": 40000.0,
+  "strategyStartDate": "2026-08-12",
+  "startingStage": "4",
+  "updatedAt": "2026-08-12T21:00:00+08:00",
+  "transactions": [
+    {
+      "id": "initial-2026-08-12",
+      "type": "initial",
+      "date": "2026-08-12",
+      "amount": 39571.42,
+      "shares": 34434.5910890255,
+      "sharesEstimated": true,
+      "navUsed": 1.1873,
+      "navDate": "2026-08-12",
+      "marketValueAtEntry": 40884.19,
+      "profitAtEntry": 1312.77,
+      "note": "初始份额按（持仓本金+当时累计盈利）÷当日确认净值反推"
+    }
+  ]
+}

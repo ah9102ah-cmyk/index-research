@@ -140,6 +140,7 @@ select { border: 1px solid #cfd3cc; }
 .primary-button { width: 100%; min-height: 51px; border: 0; background: var(--green); color: white; font: inherit; font-weight: 750; cursor: pointer; }
 .primary-button:hover { background: #103d2c; }
 .form-error { padding: 10px 12px; background: var(--red-soft); color: var(--red); font-size: 13px; }
+.form-error.success { background: var(--green-soft); color: var(--green); }
 
 .result-card { position: relative; overflow: hidden; }
 .result-card::after { content: ""; position: absolute; width: 280px; height: 280px; border-radius: 50%; right: -130px; bottom: -120px; background: rgba(23,79,58,.05); }
@@ -166,6 +167,13 @@ select { border: 1px solid #cfd3cc; }
 .result-warning { margin-top: 14px; color: var(--muted); font-size: 11px; }
 
 .dashboard { display: grid; gap: 24px; }
+.ledger-loading { min-height: 230px; padding: 35px; display: flex; align-items: center; justify-content: center; gap: 28px; border: 1px solid var(--line); background: var(--paper); }
+.ledger-loading .empty-icon { flex: 0 0 auto; }
+.ledger-loading h3 { margin: 0; font-family: Georgia, "Songti SC", serif; font-size: 27px; }
+.ledger-loading p { margin: 5px 0 0; color: var(--muted); }
+.remote-status { padding: 11px 15px; display: flex; justify-content: space-between; gap: 18px; border: 1px solid rgba(23,79,58,.18); background: var(--green-soft); color: var(--green); font-size: 12px; }
+.remote-status a { font-weight: 750; }
+.remote-entry-note { margin-top: 14px; color: var(--muted); font-size: 11px; }
 .summary-grid { display: grid; grid-template-columns: repeat(5, 1fr); border: 1px solid var(--line); background: var(--paper); }
 .summary-grid > div { padding: 20px; border-right: 1px solid var(--line); }
 .summary-grid > div:last-child { border-right: 0; }
@@ -229,7 +237,7 @@ th { color: var(--muted); font-size: 11px; }
   .calculator-section { padding-top: 60px; }
   .input-card, .result-card { padding: 22px 18px; }
   .result-head { flex-direction: column; }
-  .fund-market, .history-head { flex-direction: column; align-items: flex-start; }
+  .fund-market, .history-head, .remote-status, .ledger-loading { flex-direction: column; align-items: flex-start; }
   .nav-quote { min-width: 0; text-align: left; }
   .big-number strong { font-size: 44px; }
 }

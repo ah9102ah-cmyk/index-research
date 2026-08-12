@@ -43,6 +43,7 @@ jobs:
           PURCHASE_DATE: ${{ inputs.transaction_date }}
           CONFIRMED_SHARES: ${{ inputs.confirmed_shares }}
           PURCHASE_NOTE: ${{ inputs.note }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
         run: python scripts/record_purchase.py
       - name: Commit ledger
         run: |

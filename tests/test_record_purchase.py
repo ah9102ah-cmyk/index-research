@@ -55,9 +55,13 @@ with tempfile.TemporaryDirectory() as directory:
     encoded = base64.urlsafe_b64encode(json.dumps(payload, ensure_ascii=False).encode()).decode()
     event_path = temp / "event.json"
     event_path.write_text(json.dumps({"issue": {"body": f"<!-- index-research-ledger-v1:{encoded} -->"}}), encoding="utf-8")
-    run({**base, "GITHUB_EVENT_NAME": "issues", "GITHUB_EVENT_PATH": str(event_path), "GITHUB_RUN_ID": "12345"})
+    run({**base, "GITHUB_EVENT_NAME": "issues", "GITHUB_EVENT_PATH": str(event_path), "GITHUB_RUN_ID": "12345", "ISSUE_NUMBER": "99"})
     data = json.loads(ledger_path.read_text(encoding="utf-8"))
-    assert data["transactions"][-1]["id"] == "buy-2026-08-12-12345"
+    assert data["transactions"][-1]["id"] == "buy-2026-08-12-issue-99"
     assert data["transactions"][-1]["note"] == "issue"
+    count = len(data["transactions"])
+    run({**base, "GITHUB_EVENT_NAME": "issues", "GITHUB_EVENT_PATH": str(event_path), "GITHUB_RUN_ID": "54321", "ISSUE_NUMBER": "99"})
+    data = json.loads(ledger_path.read_text(encoding="utf-8"))
+    assert len(data["transactions"]) == count
 
 print("remote ledger writer tests: PASS")

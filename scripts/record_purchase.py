@@ -13,8 +13,8 @@ import base64
 import json
 import os
 import re
+import secrets
 import sys
-import uuid
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -133,8 +133,10 @@ def main() -> int:
         nav_date = quote.get("navDate")
 
     now = datetime.now(BEIJING)
+    issue_number = os.environ.get("ISSUE_NUMBER", "").strip()
     run_id = os.environ.get("GITHUB_RUN_ID", "").strip()
-    entry_id = f"buy-{trade_date}-{run_id or uuid.uuid4().hex[:12]}"
+    event_identity = f"issue-{issue_number}" if issue_number else (f"run-{run_id}" if run_id else secrets.token_hex(6))
+    entry_id = f"buy-{trade_date}-{event_identity}"
     if any(tx.get("id") == entry_id for tx in transactions):
         print(f"记录 {entry_id} 已存在，本次不重复写入")
         return 0

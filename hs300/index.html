@@ -34,62 +34,125 @@
       <div><span>主动择时</span><strong>关闭</strong><small>估值和技术调速未通过</small></div>
     </section>
 
-    <section class="calculator-section">
+    <section id="fund-market" class="fund-market" aria-live="polite">
+      <div>
+        <p class="eyebrow">TRACKED FUND</p>
+        <h2>华泰柏瑞沪深300ETF联接A <span>460300</span></h2>
+      </div>
+      <div class="nav-quote">
+        <span>最新确认净值</span>
+        <strong id="latest-nav">读取中…</strong>
+        <small id="latest-nav-meta">正在读取每日净值</small>
+      </div>
+    </section>
+
+    <section class="calculator-section ledger-section">
       <div class="section-heading">
-        <p class="eyebrow">POSITION BRIDGE</p>
-        <h2>把已有仓位接入模型</h2>
-        <p>沪深300目标仓位默认10万元，对应完整60/40模型组合约16.67万元。输入当前沪深300市值和累计盈亏，就能还原持仓成本与剩余储备；如储备金额与推算值不同，可直接覆盖。</p>
+        <p class="eyebrow">LOCAL POSITION LEDGER</p>
+        <h2>沪深300持仓账本</h2>
+        <p>本金、盈亏和加仓记录只保存在当前浏览器；公开站点只提供460300的每日确认净值。页面不会连接基金账户，也不会自动下单。</p>
       </div>
 
-      <div class="calculator-grid">
-        <form id="position-form" class="input-card" novalidate>
+      <div id="setup-panel" class="calculator-grid">
+        <form id="setup-form" class="input-card" novalidate>
+          <p class="eyebrow">FIRST SETUP</p>
+          <h3 class="form-title">首次建立账本</h3>
           <div class="field">
-            <label for="capital">沪深300计划目标仓位</label>
-            <div class="money-input"><span>¥</span><input id="capital" name="capital" type="number" min="1" step="100" value="100000" inputmode="decimal"></div>
-            <small>默认最终持有10万元沪深300；模型会据此推算完整60/40组合。</small>
+            <label for="total-principal">策略总本金</label>
+            <div class="money-input"><span>¥</span><input id="total-principal" type="number" min="1" step="100" value="100000" inputmode="decimal"></div>
+            <small>完整60/40组合的投入本金，默认10万元。</small>
           </div>
 
           <div class="field">
-            <label for="market-value">当前沪深300持仓市值</label>
-            <div class="money-input"><span>¥</span><input id="market-value" name="marketValue" type="number" min="0" step="100" placeholder="例如 32000" inputmode="decimal" required></div>
+            <label for="fund-cost">460300当前持仓本金</label>
+            <div class="money-input"><span>¥</span><input id="fund-cost" type="number" min="0" step="0.01" placeholder="当前累计投入成本" inputmode="decimal" required></div>
           </div>
 
           <div class="field">
-            <label for="profit-loss">当前持仓累计盈亏</label>
-            <div class="money-input"><span>¥</span><input id="profit-loss" name="profitLoss" type="number" step="100" placeholder="盈利填正数，亏损填负数" inputmode="decimal" required></div>
-            <small>仅用于还原成本和展示收益，不改变模型状态。</small>
+            <label for="initial-profit">当前累计盈亏</label>
+            <div class="money-input"><span>¥</span><input id="initial-profit" type="number" step="0.01" placeholder="盈利填正数，亏损填负数" inputmode="decimal" required></div>
+            <small>用于按最新净值反推初始份额，之后盈亏自动计算。</small>
           </div>
 
           <div class="field">
-            <label for="reserve">当前储备资产市值 <span class="optional">选填</span></label>
-            <div class="money-input"><span>¥</span><input id="reserve" name="reserve" type="number" min="0" step="100" placeholder="留空则按完整模型资金和持仓成本推算" inputmode="decimal"></div>
-            <small>可以是用于该策略的现金、货币基金或低风险储备资产。</small>
+            <label for="reserve-cash">长期储备现金</label>
+            <div class="money-input"><span>¥</span><input id="reserve-cash" type="number" min="0" step="0.01" value="40000" inputmode="decimal"></div>
+            <small>60/40中的40%储备，不与尚未投入的建仓资金混在一起。</small>
           </div>
 
           <div class="field">
-            <label for="phase">当前处于哪个阶段</label>
-            <select id="phase" name="phase">
-              <option value="1">接入策略第1个月（目标10%）</option>
-              <option value="2">建仓第2个月（目标20%）</option>
-              <option value="3">建仓第3个月（目标30%）</option>
-              <option value="4">建仓第4个月（目标40%）</option>
-              <option value="5">建仓第5个月（目标50%）</option>
-              <option value="6">建仓第6个月（校准至60%）</option>
-              <option value="steady">已完成建仓（60/40稳定期）</option>
+            <label for="starting-stage">接入时的建仓阶段</label>
+            <select id="starting-stage">
+              <option value="1">第1个月（10%）</option>
+              <option value="2">第2个月（20%）</option>
+              <option value="3">第3个月（30%）</option>
+              <option value="4" selected>第4个月（40%）</option>
+              <option value="5">第5个月（50%）</option>
+              <option value="6">第6个月（60%）</option>
+              <option value="steady">已完成建仓</option>
             </select>
-            <small>如果今天才开始采用这套规则，即使已经持仓，也选“第1个月”。超前的仓位先保持，不重复增加。</small>
+            <small>已有约4万元本金默认衔接第4个月；此后按自然月自动推进。</small>
           </div>
 
-          <button class="primary-button" type="submit">计算模型状态</button>
-          <p id="form-error" class="form-error" role="alert" hidden></p>
+          <button class="primary-button" type="submit">保存并开始自动跟踪</button>
+          <p id="setup-error" class="form-error" role="alert" hidden></p>
         </form>
 
-        <section id="result-card" class="result-card empty" aria-live="polite">
+        <section class="result-card empty">
           <div class="empty-state">
             <div class="empty-icon">60<span>/40</span></div>
-            <h3>等待输入当前仓位</h3>
-            <p>你的数据只在当前浏览器页面中参与计算，不会上传或保存。</p>
+            <h3>建立一次，以后自动读取</h3>
+            <p>保存后，页面会记住本金、推算份额与交易记录，并根据每日确认净值更新市值和盈亏。</p>
           </div>
+        </section>
+      </div>
+
+      <div id="dashboard" class="dashboard" hidden>
+        <section id="account-summary" class="summary-grid" aria-live="polite"></section>
+
+        <div class="dashboard-grid">
+          <section id="signal-card" class="result-card" aria-live="polite"></section>
+
+          <form id="buy-form" class="input-card compact-card" novalidate>
+            <p class="eyebrow">RECORD A PURCHASE</p>
+            <h3 class="form-title">记录已经完成的加仓</h3>
+            <div class="field">
+              <label for="buy-date">交易/申请日期</label>
+              <input id="buy-date" class="border-input" type="date" required>
+            </div>
+            <div class="field">
+              <label for="buy-amount">加仓本金</label>
+              <div class="money-input"><span>¥</span><input id="buy-amount" type="number" min="0.01" step="0.01" inputmode="decimal" required></div>
+              <small id="recommend-note">仅记录已经在基金平台完成的加仓。</small>
+            </div>
+            <div class="field">
+              <label for="buy-shares">确认份额 <span class="optional">选填</span></label>
+              <input id="buy-shares" class="border-input" type="number" min="0" step="0.0001" placeholder="留空则按最新净值估算" inputmode="decimal">
+              <small>基金确认后建议填写真实份额；留空会标记为估算。</small>
+            </div>
+            <button class="primary-button" type="submit">我已加仓，记到账本</button>
+            <p id="buy-error" class="form-error" role="alert" hidden></p>
+          </form>
+        </div>
+
+        <section class="ledger-history">
+          <div class="history-head">
+            <div><p class="eyebrow">HISTORY</p><h3>账本记录</h3></div>
+            <div class="ledger-actions">
+              <button id="export-ledger" class="secondary-button" type="button">导出备份</button>
+              <button id="import-ledger" class="secondary-button" type="button">导入备份</button>
+              <input id="import-file" type="file" accept="application/json,.json" hidden>
+              <button id="edit-ledger" class="secondary-button" type="button">重新初始化</button>
+              <button id="clear-ledger" class="text-button danger" type="button">清空本机账本</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>日期</th><th>类型</th><th>本金</th><th>份额</th><th>份额口径</th></tr></thead>
+              <tbody id="transaction-list"></tbody>
+            </table>
+          </div>
+          <p class="privacy-note">本地保存范围：仅当前浏览器。换设备或清除浏览器数据前，请先导出备份。</p>
         </section>
       </div>
     </section>
@@ -120,7 +183,8 @@
           <li>历史多起点研究不等于未来收益保证。</li>
           <li>模型采用沪深300全收益口径评估财富，页面不提供实时行情。</li>
           <li>测算差额是规则模型输出，不是订单，也未计入具体基金申赎、滑点、税费和个人约束。</li>
-          <li>页面不联网读取账户；输入离开或刷新后即清空。</li>
+          <li>页面不联网读取账户；个人账本保存在当前浏览器 localStorage，可由用户清空或导出。</li>
+          <li>基金净值为公开的交易日确认净值，不是盘中估值；申购份额以基金公司最终确认为准。</li>
         </ul>
       </div>
     </details>

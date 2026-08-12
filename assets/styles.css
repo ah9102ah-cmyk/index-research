@@ -101,12 +101,32 @@ a.research-card:hover { transform: translateY(-4px); border-color: rgba(23,79,58
 .rule-strip span, .rule-strip small { display: block; color: var(--muted); font-size: 12px; }
 .rule-strip strong { display: block; margin: 5px 0; font-family: Georgia, "Songti SC", serif; font-size: 25px; }
 
+.fund-market {
+  margin-top: 38px;
+  padding: 28px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+}
+.fund-market h2 { margin: 0; font-family: Georgia, "Songti SC", serif; font-size: clamp(22px, 3vw, 32px); }
+.fund-market h2 span { margin-left: 10px; color: var(--muted); font: 14px ui-monospace, monospace; }
+.nav-quote { min-width: 220px; text-align: right; }
+.nav-quote span, .nav-quote small { display: block; color: var(--muted); font-size: 12px; }
+.nav-quote strong { display: block; font-family: Georgia, serif; font-size: 32px; }
+.nav-up { color: var(--red) !important; }
+.nav-down { color: var(--green) !important; }
+
 .calculator-section { padding: 86px 0 70px; }
+.ledger-section { padding-top: 64px; }
 .section-heading { max-width: 750px; margin-bottom: 36px; }
 .section-heading h2 { margin: 0; font-family: Georgia, "Songti SC", serif; font-size: clamp(32px, 4.5vw, 50px); }
 .section-heading > p:last-child { color: var(--muted); font-size: 16px; }
 .calculator-grid { display: grid; grid-template-columns: minmax(330px, .82fr) minmax(420px, 1.18fr); gap: 24px; align-items: stretch; }
 .input-card, .result-card { min-height: 650px; padding: clamp(24px, 3vw, 38px); border: 1px solid var(--line); background: var(--paper); box-shadow: var(--shadow); }
+.form-title { margin: 0 0 26px; font-family: Georgia, "Songti SC", serif; font-size: 27px; }
 .field { margin-bottom: 22px; }
 .field label { display: flex; justify-content: space-between; margin-bottom: 7px; font-weight: 700; font-size: 14px; }
 .field small { display: block; margin-top: 6px; color: var(--muted); font-size: 11px; }
@@ -116,6 +136,7 @@ a.research-card:hover { transform: translateY(-4px); border-color: rgba(23,79,58
 .money-input span { padding-left: 14px; color: var(--muted); }
 input, select { width: 100%; border: 0; background: white; color: var(--ink); font: inherit; min-height: 48px; padding: 11px 13px; outline: none; }
 select { border: 1px solid #cfd3cc; }
+.border-input { border: 1px solid #cfd3cc; }
 .primary-button { width: 100%; min-height: 51px; border: 0; background: var(--green); color: white; font: inherit; font-weight: 750; cursor: pointer; }
 .primary-button:hover { background: #103d2c; }
 .form-error { padding: 10px 12px; background: var(--red-soft); color: var(--red); font-size: 13px; }
@@ -144,6 +165,31 @@ select { border: 1px solid #cfd3cc; }
 .result-reason { margin: 25px 0 0; padding: 16px 18px; border-left: 3px solid var(--green); background: var(--green-soft); font-size: 14px; }
 .result-warning { margin-top: 14px; color: var(--muted); font-size: 11px; }
 
+.dashboard { display: grid; gap: 24px; }
+.summary-grid { display: grid; grid-template-columns: repeat(5, 1fr); border: 1px solid var(--line); background: var(--paper); }
+.summary-grid > div { padding: 20px; border-right: 1px solid var(--line); }
+.summary-grid > div:last-child { border-right: 0; }
+.summary-grid span { display: block; color: var(--muted); font-size: 11px; }
+.summary-grid strong { display: block; margin-top: 3px; font-size: 20px; }
+.summary-grid small { color: var(--muted); font-size: 10px; }
+.positive { color: var(--red); }
+.negative { color: var(--green); }
+.dashboard-grid { display: grid; grid-template-columns: minmax(420px, 1.2fr) minmax(320px, .8fr); gap: 24px; }
+.dashboard-grid .result-card, .compact-card { min-height: 620px; }
+.compact-card { box-shadow: none; }
+.ledger-history { padding: 30px; border: 1px solid var(--line); background: var(--paper); }
+.history-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+.history-head h3 { margin: 0; font-family: Georgia, "Songti SC", serif; font-size: 28px; }
+.ledger-actions { display: flex; flex-wrap: wrap; gap: 9px; }
+.secondary-button, .text-button { min-height: 38px; padding: 7px 12px; border: 1px solid var(--line); background: white; color: var(--ink); cursor: pointer; }
+.text-button { border-color: transparent; background: transparent; }
+.danger { color: var(--red); }
+.table-wrap { margin-top: 22px; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 12px 10px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+th { color: var(--muted); font-size: 11px; }
+.privacy-note { margin: 18px 0 0; color: var(--muted); font-size: 11px; }
+
 .explain-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); margin-bottom: 56px; }
 .explain-grid article { padding: 30px; background: var(--paper); }
 .step-no { color: var(--gold); font-family: ui-monospace, monospace; font-weight: 800; }
@@ -159,6 +205,11 @@ select { border: 1px solid #cfd3cc; }
   .strategy-hero { align-items: flex-start; flex-direction: column; }
   .review-stamp { align-self: flex-start; }
   .research-grid, .calculator-grid { grid-template-columns: 1fr; }
+  .dashboard-grid { grid-template-columns: 1fr; }
+  .summary-grid { grid-template-columns: repeat(2, 1fr); }
+  .summary-grid > div { border-bottom: 1px solid var(--line); }
+  .summary-grid > div:nth-child(even) { border-right: 0; }
+  .summary-grid > div:last-child { grid-column: 1 / -1; border-bottom: 0; }
   .rule-strip { grid-template-columns: repeat(2, 1fr); }
   .rule-strip > div:nth-child(2) { border-right: 0; }
   .rule-strip > div:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
@@ -178,5 +229,7 @@ select { border: 1px solid #cfd3cc; }
   .calculator-section { padding-top: 60px; }
   .input-card, .result-card { padding: 22px 18px; }
   .result-head { flex-direction: column; }
+  .fund-market, .history-head { flex-direction: column; align-items: flex-start; }
+  .nav-quote { min-width: 0; text-align: left; }
   .big-number strong { font-size: 44px; }
 }

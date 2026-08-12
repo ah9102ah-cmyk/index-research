@@ -1,0 +1,34 @@
+name: Update fund NAV
+
+on:
+  schedule:
+    - cron: "30 13 * * 1-5"
+    - cron: "30 14 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fund-nav-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Fetch confirmed NAV
+        run: python scripts/update_fund_nav.py
+      - name: Commit changed NAV
+        run: |
+          if git diff --quiet -- data/fund-460300.json; then
+            echo "NAV unchanged"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/fund-460300.json
+          git commit -m "更新460300基金净值"
+          git push

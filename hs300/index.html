@@ -34,6 +34,30 @@
       <div><span>主动择时</span><strong>关闭</strong><small>估值和技术调速未通过</small></div>
     </section>
 
+    <section class="build-schedule">
+      <div class="section-heading">
+        <p class="eyebrow">BUILD SCHEDULE · 建仓节奏</p>
+        <h2>每个月哪天买：第一个交易日</h2>
+        <p>规则来自研究冻结协议：<b>信号日 = 每月最后交易日，执行日 = 下一交易日（即下月第一个交易日）</b>。实际操作：每月第一个 A 股交易日 15:00 前提交 460300 申购，按当日确认净值成交。</p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>建仓月</th><th>目标占比</th><th>本月操作</th></tr></thead>
+          <tbody>
+            <tr><td>第 1 个月</td><td>10%</td><td>补到 10%</td></tr>
+            <tr><td>第 2 个月</td><td>20%</td><td>补到 20%</td></tr>
+            <tr><td>第 3 个月</td><td>30%</td><td>补到 30%</td></tr>
+            <tr><td>第 4 个月</td><td>40%</td><td>补到 40%</td></tr>
+            <tr><td>第 5 个月</td><td>50%</td><td>补到 50%</td></tr>
+            <tr><td>第 6 个月</td><td>60%</td><td>校准到 60%，之后进入稳定期</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="privacy-note">两个要点：① <b>买的是"缺口"，不是固定金额</b>——金额 = 当期组合市值 × 目标占比 − 当前沪深300市值，涨了少买、跌了多买。② <b>具体哪天不重要</b>——研究测过执行日错开 1~5 个交易日，结果基本一致；关键是每月固定、按计划、不挑日子。</p>
+    </section>
+
     <section id="fund-market" class="fund-market" aria-live="polite">
       <div>
         <p class="eyebrow">TRACKED FUND</p>

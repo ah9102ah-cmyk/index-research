@@ -119,6 +119,17 @@ a.research-card:hover { transform: translateY(-4px); border-color: rgba(23,79,58
 .nav-up { color: var(--red) !important; }
 .nav-down { color: var(--green) !important; }
 
+.build-schedule {
+  margin-top: 38px;
+  padding: 30px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+}
+.build-schedule .section-heading { margin-bottom: 22px; }
+.build-schedule .section-heading h2 { font-size: clamp(24px, 3vw, 34px); }
+.build-schedule .section-heading > p:last-child { font-size: 14px; }
+.build-schedule .table-wrap { margin-top: 0; }
+
 .calculator-section { padding: 86px 0 70px; }
 .ledger-section { padding-top: 64px; }
 .section-heading { max-width: 750px; margin-bottom: 36px; }

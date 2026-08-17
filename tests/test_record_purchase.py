@@ -64,4 +64,13 @@ with tempfile.TemporaryDirectory() as directory:
     data = json.loads(ledger_path.read_text(encoding="utf-8"))
     assert len(data["transactions"]) == count
 
+    # workflow_dispatch 幂等：同一笔（日期/金额/份额/备注相同）重复触发不重复写入
+    run({**base, "PURCHASE_AMOUNT": "2000", "PURCHASE_DATE": "2026-08-12", "CONFIRMED_SHARES": "1600", "PURCHASE_NOTE": "dispatch"})
+    data = json.loads(ledger_path.read_text(encoding="utf-8"))
+    assert data["transactions"][-1]["id"].startswith("buy-2026-08-12-dispatch-")
+    dispatch_count = len(data["transactions"])
+    run({**base, "PURCHASE_AMOUNT": "2000", "PURCHASE_DATE": "2026-08-12", "CONFIRMED_SHARES": "1600", "PURCHASE_NOTE": "dispatch"})
+    data = json.loads(ledger_path.read_text(encoding="utf-8"))
+    assert len(data["transactions"]) == dispatch_count
+
 print("remote ledger writer tests: PASS")

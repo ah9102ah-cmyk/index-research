@@ -10,11 +10,12 @@ estimate.
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import os
 import re
-import secrets
 import sys
+import urllib.request
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -82,6 +83,31 @@ def load_json(path: Path) -> dict:
         fail(f"无法读取 {path.name}：{exc}")
 
 
+def fetch_nav_for_date(code: str, date_str: str):
+    """Return the confirmed unit NAV (Decimal) for a specific date, or None."""
+    url = (
+        "https://api.fund.eastmoney.com/f10/lsjz"
+        f"?fundCode={code}&pageIndex=1&pageSize=20&startDate={date_str}&endDate={date_str}"
+    )
+    try:
+        request = urllib.request.Request(
+            url,
+            headers={
+                "Referer": "https://fundf10.eastmoney.com/",
+                "User-Agent": "Mozilla/5.0 index-research-nav-updater/1.0",
+            },
+        )
+        with urllib.request.urlopen(request, timeout=30) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+        rows = payload.get("Data", {}).get("LSJZList", [])
+        if not rows:
+            return None
+        value = Decimal(str(rows[0].get("DWJZ", "")))
+        return value if value.is_finite() and value > 0 else None
+    except Exception:
+        return None
+
+
 def main() -> int:
     ledger_path = Path(os.environ.get("LEDGER_PATH", DEFAULT_LEDGER))
     quote_path = Path(os.environ.get("QUOTE_PATH", DEFAULT_QUOTE))
@@ -127,15 +153,25 @@ def main() -> int:
         if quote.get("code") != "460300":
             fail("净值文件基金代码不正确")
         nav = positive_decimal(str(quote.get("nav", "")), "最新确认净值")
+        nav_date = quote.get("navDate")
+        # 交易日与最新净值日不同时，尝试取交易日净值；取不到则回退最新净值（仍标记估算）
+        if trade_date != str(nav_date):
+            historical = fetch_nav_for_date("460300", trade_date)
+            if historical is not None:
+                nav = historical
+                nav_date = trade_date
         shares = amount / nav
         estimated = True
         nav_used = float(nav)
-        nav_date = quote.get("navDate")
 
     now = datetime.now(BEIJING)
     issue_number = os.environ.get("ISSUE_NUMBER", "").strip()
-    run_id = os.environ.get("GITHUB_RUN_ID", "").strip()
-    event_identity = f"issue-{issue_number}" if issue_number else (f"run-{run_id}" if run_id else secrets.token_hex(6))
+    if issue_number:
+        event_identity = f"issue-{issue_number}"
+    else:
+        # workflow_dispatch：按内容哈希幂等，重复触发同一笔不会重复写入
+        key = f"{trade_date}|{amount}|{shares if shares_raw else 'estimated'}|{note}"
+        event_identity = "dispatch-" + hashlib.sha256(key.encode("utf-8")).hexdigest()[:12]
     entry_id = f"buy-{trade_date}-{event_identity}"
     if any(tx.get("id") == entry_id for tx in transactions):
         print(f"记录 {entry_id} 已存在，本次不重复写入")

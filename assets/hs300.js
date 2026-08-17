@@ -32,6 +32,13 @@
     return `${values.year}-${values.month}-${values.day}`;
   };
   const finitePositive = (n) => Number.isFinite(n) && n > 0;
+  const navDataFresh = (navDate) => {
+    if (!navDate || !/^\d{4}-\d{2}-\d{2}$/.test(navDate)) return false;
+    if (navDate > today()) return false;
+    const d = new Date(`${navDate}T00:00:00+08:00`).getTime();
+    const n = new Date(`${today()}T00:00:00+08:00`).getTime();
+    return (n - d) / 86400000 <= 15;
+  };
   const showMessage = (message, success = false) => {
     const el = document.querySelector("#buy-error");
     el.textContent = message;
@@ -85,12 +92,14 @@
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
       if (data.code !== FUND_CODE || !finitePositive(Number(data.nav))) throw new Error("基金净值数据无效");
-      quote = { ...data, nav: Number(data.nav), dailyChangePct: Number(data.dailyChangePct) };
+      quote = { ...data, nav: Number(data.nav), dailyChangePct: Number(data.dailyChangePct), fresh: navDataFresh(data.navDate) };
       renderQuote();
       renderDashboard();
     } catch (_) {
       document.querySelector("#latest-nav").textContent = "暂不可用";
       document.querySelector("#latest-nav-meta").textContent = "净值读取失败，请稍后刷新";
+      const footerNav = document.querySelector("#footer-nav-date");
+      if (footerNav) footerNav.textContent = "暂不可用";
       renderDashboard();
     }
   }
@@ -99,18 +108,28 @@
     const nav = document.querySelector("#latest-nav");
     const meta = document.querySelector("#latest-nav-meta");
     nav.textContent = quote.nav.toFixed(4);
-    const sign = quote.dailyChangePct > 0 ? "+" : "";
-    nav.className = quote.dailyChangePct > 0 ? "nav-up" : (quote.dailyChangePct < 0 ? "nav-down" : "");
-    meta.textContent = `${quote.navDate} · 日涨跌 ${sign}${quote.dailyChangePct.toFixed(2)}% · 确认净值`;
+    const pct = Number.isFinite(quote.dailyChangePct) ? quote.dailyChangePct : 0;
+    const sign = pct > 0 ? "+" : "";
+    nav.className = pct > 0 ? "nav-up" : (pct < 0 ? "nav-down" : "");
+    meta.textContent = `${quote.navDate} · 日涨跌 ${sign}${pct.toFixed(2)}% · 确认净值${quote.fresh ? "" : "（可能过期）"}`;
+    const footerNav = document.querySelector("#footer-nav-date");
+    if (footerNav) footerNav.textContent = quote.navDate;
   }
 
-  function monthStage(startDate, startingStage) {
+  function shanghaiParts(date) {
+    const parts = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Shanghai", year: "numeric", month: "numeric" }).formatToParts(date);
+    const values = Object.fromEntries(parts.map((part) => [part.type, Number(part.value)]));
+    return { year: values.year, month: values.month };
+  }
+
+  function monthStage(startDate, startingStage, referenceDate) {
     if (startingStage === "steady") return "steady";
     const start = new Date(`${startDate}T00:00:00+08:00`);
-    const now = new Date();
-    const elapsed = Math.max(0, (Number(new Intl.DateTimeFormat("en", { timeZone: "Asia/Shanghai", year: "numeric" }).format(now)) - start.getFullYear()) * 12
-      + Number(new Intl.DateTimeFormat("en", { timeZone: "Asia/Shanghai", month: "numeric" }).format(now)) - (start.getMonth() + 1));
-    const stage = Number(startingStage) + elapsed;
+    const ref = referenceDate ? new Date(`${referenceDate}T00:00:00+08:00`) : new Date();
+    const s = shanghaiParts(start);
+    const r = shanghaiParts(ref);
+    const elapsed = (r.year - s.year) * 12 + (r.month - s.month);
+    const stage = Number(startingStage) + Math.max(0, elapsed);
     return stage > 6 ? "steady" : String(stage);
   }
 
@@ -126,7 +145,7 @@
     const buildCash = Math.max(0, Number(ledger.totalPrincipal) - reserveCash - fundCost);
     const totalValue = marketValue + reserveCash + buildCash;
     const currentWeight = totalValue > 0 ? marketValue / totalValue : 0;
-    const phase = monthStage(ledger.strategyStartDate, String(ledger.startingStage));
+    const phase = monthStage(ledger.strategyStartDate, String(ledger.startingStage), quote ? quote.navDate : null);
     let action = "hold", targetWeight = currentWeight, title, reason;
 
     if (phase === "steady") {
@@ -159,12 +178,16 @@
     }
 
     let difference = action === "hold" ? 0 : targetWeight * totalValue - marketValue;
-    if (difference > 0) difference = Math.min(difference, buildCash);
+    // 建仓期买入只能用"尚未投入建仓资金"；稳定期再平衡可动用储备现金（60/40 的现金腿）
+    const availableCash = phase === "steady" ? buildCash + reserveCash : buildCash;
+    if (difference > 0) difference = Math.min(difference, availableCash);
     if (Math.abs(difference) < 0.01) difference = 0;
     if (action === "add" && difference <= 0) {
       action = "hold";
-      title = "没有可用建仓资金";
-      reason = "模型存在正向差额，但尚未投入建仓资金已用完；长期4万元储备不自动挪用。";
+      title = phase === "steady" ? "没有可用现金补回" : "没有可用建仓资金";
+      reason = phase === "steady"
+        ? "模型组合低于55%，但组合已无可用现金用于补回（储备也已用尽）。"
+        : "模型存在正向差额，但尚未投入建仓资金已用完；长期储备在建仓期不自动挪用。";
     }
     return { shares, fundCost, marketValue, profit, profitRate, reserveCash, buildCash, totalValue, currentWeight, phase, action, targetWeight, difference, title, reason };
   }
@@ -195,25 +218,31 @@
       <div><span>当前基金市值</span><strong>${money.format(m.marketValue)}</strong><small>${sharesFmt.format(m.shares)} 份</small></div>
       <div><span>累计持仓盈亏</span><strong class="${profitClass}">${m.profit >= 0 ? "+" : ""}${money.format(m.profit)}</strong><small>${(m.profitRate * 100).toFixed(2)}%</small></div>
       <div><span>尚未投入建仓资金</span><strong>${money.format(m.buildCash)}</strong><small>可用于后续建仓</small></div>
-      <div><span>长期储备现金</span><strong>${money.format(m.reserveCash)}</strong><small>不自动挪用</small></div>
+      <div><span>长期储备现金</span><strong>${money.format(m.reserveCash)}</strong><small>稳定期再平衡时可动用</small></div>
       <div><span>模型组合当前占比</span><strong>${(m.currentWeight * 100).toFixed(1)}%</strong><small>基金市值 ÷ 当前组合市值</small></div>`;
 
-    const actionText = m.action === "add" ? "可加仓差额" : (m.action === "reduce" ? "可降低差额" : "本期保持");
-    const diffText = m.difference === 0 ? "¥0.00" : `${m.difference > 0 ? "+" : "−"}${money.format(Math.abs(m.difference))}`;
-    signalCard.innerHTML = `
-      <div class="result-head"><div><p class="eyebrow">CURRENT MODEL STATE</p><h3>${escapeHtml(m.title)}</h3></div><span class="action-badge ${m.action}">${actionText}</span></div>
-      <div class="big-number"><span>按最新确认净值计算的本期模型差额</span><strong>${escapeHtml(diffText)}</strong><small>${m.phase === "steady" ? "60/40稳定期" : `固定建仓第${m.phase}个月`} · 数据日期 ${quote.navDate}</small></div>
-      <div class="result-metrics">
-        <div><span>最新单位净值</span><strong>${quote.nav.toFixed(4)}</strong></div>
-        <div><span>当前组合市值</span><strong>${money.format(m.totalValue)}</strong></div>
-        <div><span>当前沪深300占比</span><strong>${(m.currentWeight * 100).toFixed(1)}%</strong></div>
-        <div><span>本期目标占比</span><strong>${(m.targetWeight * 100).toFixed(1)}%</strong></div>
-      </div>
-      <p class="result-reason">${escapeHtml(m.reason)}</p>
-      <p class="result-warning">差额是模型测算上限，不是自动订单。开放式基金按未知价申购，实际份额以基金公司确认结果为准。</p>`;
-    document.querySelector("#recommend-note").textContent = m.difference > 0
-      ? `当前模型正向差额上限 ${money.format(m.difference)}；这里只登记你已经完成的加仓。`
-      : "当前模型没有正向差额；这里只登记已经在基金平台完成的加仓。";
+    if (!quote.fresh) {
+      signalCard.innerHTML = `
+        <div class="empty-state"><h3>数据不足，暂停测算</h3><p>最新确认净值日期 ${escapeHtml(quote.navDate)} 已过期或异常，本期不输出调仓差额。</p></div>`;
+      document.querySelector("#recommend-note").textContent = "净值数据异常时暂停测算；这里只登记已经在基金平台完成的加仓。";
+    } else {
+      const actionText = m.action === "add" ? "可加仓差额" : (m.action === "reduce" ? "可降低差额" : "本期保持");
+      const diffText = m.difference === 0 ? "¥0.00" : `${m.difference > 0 ? "+" : "−"}${money.format(Math.abs(m.difference))}`;
+      signalCard.innerHTML = `
+        <div class="result-head"><div><p class="eyebrow">CURRENT MODEL STATE</p><h3>${escapeHtml(m.title)}</h3></div><span class="action-badge ${m.action}">${actionText}</span></div>
+        <div class="big-number"><span>按最新确认净值计算的本期模型差额</span><strong>${escapeHtml(diffText)}</strong><small>${m.phase === "steady" ? "60/40稳定期" : `固定建仓第${m.phase}个月`} · 数据日期 ${quote.navDate}</small></div>
+        <div class="result-metrics">
+          <div><span>最新单位净值</span><strong>${quote.nav.toFixed(4)}</strong></div>
+          <div><span>当前组合市值</span><strong>${money.format(m.totalValue)}</strong></div>
+          <div><span>当前沪深300占比</span><strong>${(m.currentWeight * 100).toFixed(1)}%</strong></div>
+          <div><span>本期目标占比</span><strong>${(m.targetWeight * 100).toFixed(1)}%</strong></div>
+        </div>
+        <p class="result-reason">${escapeHtml(m.reason)}</p>
+        <p class="result-warning">差额是模型测算上限，不是自动订单。开放式基金按未知价申购，实际份额以基金公司确认结果为准。</p>`;
+      document.querySelector("#recommend-note").textContent = m.difference > 0
+        ? `当前模型正向差额上限 ${money.format(m.difference)}；这里只登记你已经完成的加仓。`
+        : "当前模型没有正向差额；这里只登记已经在基金平台完成的加仓。";
+    }
     renderHistory();
   }
 

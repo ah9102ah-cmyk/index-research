@@ -22,8 +22,8 @@
       </div>
       <div class="review-stamp">
         <span>研究状态</span>
-        <strong>复审通过</strong>
-        <small>历史研究已封版<br>尚未经过实盘验证</small>
+        <strong>研究稿</strong>
+        <small>基础政策已通过研究验收<br>未上实盘 · 非收益承诺</small>
       </div>
     </section>
 
@@ -162,12 +162,13 @@
           <li>测算差额是规则模型输出，不是订单，也未计入具体基金申赎、滑点、税费和个人约束。</li>
           <li>页面不联网读取基金账户；公开账本由仓库所有者主动登记，网页只读取，不保存 GitHub 密钥。</li>
           <li>基金净值为公开的交易日确认净值，不是盘中估值；申购份额以基金公司最终确认为准。</li>
+          <li>基金若发生分红，单位净值会相应下调，本页不会自动记录分红；现金分红到账后请自行计入，以免把分红误显示为浮亏。</li>
         </ul>
       </div>
     </details>
   </main>
 
-  <footer class="site-footer">研究规则版本 v1.1.2 · 数据截止 2026-08-07 · 非收益承诺</footer>
+  <footer class="site-footer">研究规则版本 v1.1.2 · 研究数据截至 2026-08-07 · 净值日期 <span id="footer-nav-date">—</span> · 非收益承诺</footer>
   <script src="../assets/hs300.js" defer></script>
 </body>
 </html>

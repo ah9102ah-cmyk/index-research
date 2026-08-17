@@ -53,14 +53,19 @@
   };
 
   function validateLedger(candidate) {
-    return candidate?.version === 1 && candidate?.fundCode === FUND_CODE
-      && finitePositive(Number(candidate.totalPrincipal)) && Number(candidate.reserveCash) >= 0
-      && /^\d{4}-\d{2}-\d{2}$/.test(candidate.strategyStartDate)
-      && (["1", "2", "3", "4", "5", "6", "steady"].includes(String(candidate.startingStage)))
-      && Array.isArray(candidate.transactions) && candidate.transactions.length > 0
-      && candidate.transactions.every(tx => ["initial", "buy"].includes(tx.type)
-        && finitePositive(Number(tx.amount)) && finitePositive(Number(tx.shares))
-        && /^\d{4}-\d{2}-\d{2}$/.test(tx.date));
+    if (candidate?.version !== 1 || candidate?.fundCode !== FUND_CODE) return false;
+    if (!finitePositive(Number(candidate.totalPrincipal))) return false;
+    if (Number(candidate.reserveCash) < 0) return false;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(candidate.strategyStartDate)) return false;
+    if (!["1", "2", "3", "4", "5", "6", "steady"].includes(String(candidate.startingStage))) return false;
+    if (!Array.isArray(candidate.transactions) || candidate.transactions.length === 0) return false;
+    return candidate.transactions.every(tx => {
+      if (!["initial", "buy"].includes(tx.type)) return false;
+      if (!finitePositive(Number(tx.amount))) return false;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(tx.date)) return false;
+      if (tx.type === "initial" && !finitePositive(Number(tx.shares))) return false;
+      return true;
+    });
   }
 
   function loadCache() {
@@ -82,6 +87,13 @@
     } catch (error) {
       ledger = loadCache();
       ledgerSource = ledger ? "cache" : "error";
+      const note = document.querySelector("#ledger-source-status");
+      if (note) {
+        note.textContent = ledger
+          ? `远程账本本次格式异常、已回退到本机缓存：${error.message}`
+          : `远程账本读取失败：${error.message}`;
+        note.classList.add("warn");
+      }
     }
     renderDashboard();
   }
@@ -133,10 +145,22 @@
     return stage > 6 ? "steady" : String(stage);
   }
 
+  function txShares(tx) {
+    const s = Number(tx.shares);
+    if (finitePositive(s)) return s;
+    if (tx.type === "buy" && quote) return Number(tx.amount) / quote.nav; // 缺份额时按最新确认净值估算
+    return 0;
+  }
+  function txEstimated(tx) {
+    const s = Number(tx.shares);
+    if (finitePositive(s)) return !!tx.sharesEstimated;
+    return tx.type === "buy";
+  }
+
   function compute() {
     if (!ledger || !quote) return null;
     const transactions = ledger.transactions || [];
-    const shares = transactions.reduce((sum, tx) => sum + Number(tx.shares || 0), 0);
+    const shares = transactions.reduce((sum, tx) => sum + txShares(tx), 0);
     const fundCost = transactions.reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
     const marketValue = shares * quote.nav;
     const profit = marketValue - fundCost;
@@ -250,8 +274,8 @@
     const rows = [...(ledger.transactions || [])].reverse();
     transactionList.innerHTML = rows.map(tx => `
       <tr><td>${escapeHtml(tx.date)}</td><td>${tx.type === "initial" ? "初始持仓" : "加仓"}</td>
-      <td>${money.format(Number(tx.amount))}</td><td>${sharesFmt.format(Number(tx.shares))}</td>
-      <td>${tx.sharesEstimated ? "按净值估算" : "基金确认"}</td></tr>`).join("");
+      <td>${money.format(Number(tx.amount))}</td><td>${sharesFmt.format(txShares(tx))}</td>
+      <td>${txEstimated(tx) ? "按净值估算" : "基金确认"}</td></tr>`).join("");
   }
 
   function encodePayload(payload) {

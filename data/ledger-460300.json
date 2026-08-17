@@ -7,7 +7,7 @@
   "reserveCash": 40000.0,
   "strategyStartDate": "2026-08-12",
   "startingStage": "4",
-  "updatedAt": "2026-08-12T21:00:00+08:00",
+  "updatedAt": "2026-08-17T13:56:35+08:00",
   "transactions": [
     {
       "id": "initial-2026-08-12",
@@ -21,6 +21,18 @@
       "marketValueAtEntry": 40884.19,
       "profitAtEntry": 1312.77,
       "note": "初始份额按（持仓本金+当时累计盈利）÷当日确认净值反推"
+    },
+    {
+      "id": "buy-2026-08-14-issue-1",
+      "type": "buy",
+      "date": "2026-08-14",
+      "amount": 1000.0,
+      "shares": 846.3100880162492,
+      "sharesEstimated": true,
+      "navUsed": 1.1816,
+      "navDate": "2026-08-14",
+      "note": "",
+      "recordedAt": "2026-08-17T13:56:35+08:00"
     }
   ]
 }
